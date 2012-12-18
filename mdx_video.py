@@ -60,13 +60,6 @@ Test Youtube Link
 u'<p><a href="http://www.youtube.com/watch?v=u1mA-0w8XPo&amp;feature=PlayList&amp;p=34C6046F7FEACFD3&amp;playnext=1&amp;playnext_from=PL&amp;index=1">Youtube link</a></p>'
 
 
-Test HTML Youtube Link
-
->>> s = 'Here is a link to <a href="http://www.youtube.com/watch?v=u1mA-0w8XPo&feature=PlayList&p=34C6046F7FEACFD3&playnext=1&playnext_from=PL&index=1">a YouTube movie</a>.'
->>> markdown.markdown(s, ['video'])
-u'<p>Here is a link to <a href="http://www.youtube.com/watch?v=u1mA-0w8XPo&feature=PlayList&p=34C6046F7FEACFD3&playnext=1&playnext_from=PL&index=1">a YouTube movie</a>.</p>'
-
-
 Test Dailymotion
 
 >>> s = "http://www.dailymotion.com/relevance/search/ut2004/video/x3kv65_ut2004-ownage_videogames"
@@ -135,8 +128,12 @@ u'<p><object data="http://www.gametrailers.com/remote_wrap.php?mid=58079" height
 """
 
 import markdown
+try:
+    from markdown.util import etree
+except:    
+    from markdown import etree
 
-version = "0.1.6"
+version = "0.1.7"
 
 class VideoExtension(markdown.Extension):
     def __init__(self, configs):
@@ -184,10 +181,8 @@ class VideoExtension(markdown.Extension):
             r'([^(]|^)http://(www.|)vimeo\.com/(?P<vimeoid>\d+)\S*')
         self.add_inline(md, 'yahoo', Yahoo,
             r'([^(]|^)http://video\.yahoo\.com/watch/(?P<yahoovid>\d+)/(?P<yahooid>\d+)')
-        # http://www.youtube.com/watch?v=R2fwHjLvvk4&feature=rec-LGOUT-exp_stronger_r2-2r-1-HM
-        # http://www.youtube.com/v/0Xfh5iBBh4Y?fs=1&hl=en_US
         self.add_inline(md, 'youtube', Youtube,
-            r'([^("\']|^)http://www\.youtube\.com/(?:watch\?\S*v=|v\/)(?P<youtubeargs>[A-Za-z0-9_&=-]+)\S*')
+            r'([^(]|^)http://www\.youtube\.com/watch\?\S*v=(?P<youtubeargs>[A-Za-z0-9_&=-]+)\S*')
 
 class Bliptv(markdown.inlinepatterns.Pattern):
     def handleMatch(self, m):
@@ -238,7 +233,7 @@ class Yahoo(markdown.inlinepatterns.Pattern):
         width = self.ext.config['yahoo_width'][0]
         height = self.ext.config['yahoo_height'][0]
         obj = flash_object(url, width, height)
-        param = markdown.etree.Element('param')
+        param = etree.Element('param')
         param.set('name', 'flashVars')
         param.set('value', "id=%s&vid=%s" % (m.group('yahooid'),
                 m.group('yahoovid')))
@@ -253,27 +248,19 @@ class Youtube(markdown.inlinepatterns.Pattern):
         return flash_object(url, width, height)
 
 def flash_object(url, width, height):
-        obj = markdown.etree.Element('object')
+        obj = etree.Element('object')
         obj.set('type', 'application/x-shockwave-flash')
         obj.set('width', width)
         obj.set('height', height)
         obj.set('data', url)
-        param = markdown.etree.Element('param')
+        param = etree.Element('param')
         param.set('name', 'movie')
         param.set('value', url)
         obj.append(param)
-        param = markdown.etree.Element('param')
-        param.set('name', 'wmode')
-        param.set('value', 'opaque')
-        obj.append(param)
-        param = markdown.etree.Element('param')
+        param = etree.Element('param')
         param.set('name', 'allowFullScreen')
         param.set('value', 'true')
         obj.append(param)
-        #param = markdown.etree.Element('param')
-        #param.set('name', 'allowScriptAccess')
-        #param.set('value', 'sameDomain')
-        #obj.append(param)
         return obj
 
 def makeExtension(configs=None) :
